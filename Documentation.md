@@ -1,4 +1,4 @@
-# PermastoreIt Documentation
+# PermastoreIt 1.2.0 Documentation
 
 ![alt text](PermastoreIt.jpg)
 
@@ -13,46 +13,52 @@
 4. [Configuration](#configuration)
 5. [API Reference](#api-reference)
    - [File Operations](#file-operations)
-   - [Peer Management](#peer-management)
    - [System Status](#system-status)
    - [Zero-Knowledge Proofs](#zero-knowledge-proofs)
-6. [Core Components](#core-components)
+6. [SDK Reference](#sdk-reference)
+   - [Installation](#sdk-installation)
+   - [Basic Usage](#basic-usage)
+   - [Client Methods](#client-methods)
+   - [Error Handling](#error-handling)
+   - [Examples](#examples)
+7. [Core Components](#core-components)
    - [Server](#server)
    - [P2P Node](#p2p-node)
    - [Blockchain](#blockchain)
    - [Network](#network)
    - [AI Optimizer](#ai-optimizer)
    - [ZKP Verifier](#zkp-verifier)
-7. [Storage Structure](#storage-structure)
-8. [Security Features](#security-features)
-9. [Monitoring and Maintenance](#monitoring-and-maintenance)
-10. [Troubleshooting](#troubleshooting)
-11. [Development Guide](#development-guide)
-12. [Best Practices](#best-practices)
-13. [Changelog](#changelog)
-14. [License](#license)
+8. [Storage Structure](#storage-structure)
+9. [Security Features](#security-features)
+10. [Monitoring and Maintenance](#monitoring-and-maintenance)
+11. [Troubleshooting](#troubleshooting)
+12. [Development Guide](#development-guide)
+13. [Best Practices](#best-practices)
+14. [Changelog](#changelog)
+15. [License](#license)
 
 ## Introduction
 
-PermastoreIt is a decentralized file storage system that uses blockchain technology and peer-to-peer networking to provide resilient, tamper-proof file storage and distribution. It incorporates advanced features like AI-based file deduplication, zero-knowledge proofs for verification, and content-addressed storage.
+PermastoreIt 1.2.0 is a decentralized file storage system that uses blockchain technology and peer-to-peer networking to provide resilient, tamper-proof file storage and distribution. It incorporates advanced features like AI-based file deduplication, zero-knowledge proofs for verification, and content-addressed storage.
 
 Key features:
 
 - **Content-addressed storage**: Files are identified by their cryptographic hash
 - **Blockchain ledger**: Immutable record of all file transactions
-- **P2P distribution**: Files are distributed across a network of nodes
+- **Kademlia DHT**: Distributed Hash Table for efficient P2P file discovery and retrieval
 - **AI-powered deduplication**: Automatically detects similar files
 - **Zero-knowledge proofs**: Verify file existence without revealing the file
-- **Hybrid API use**: RESTful API for clients and WebSockets API for real-time updates
+- **FastAPI-based server**: Modern, high-performance REST API
+- **Python SDK**: Programmatic access to all functionality
 
 ## Architecture Overview
 
-PermastoreIt follows a modular architecture with six main components:
+PermastoreIt 1.2.0 follows a modular architecture with six main components:
 
 1. **Server**: Provides the HTTP API for interacting with the system
 2. **P2P Node**: Orchestrates file storage and retrieval operations
 3. **Blockchain**: Maintains an immutable ledger of file transactions
-4. **Network**: Handles peer-to-peer communication
+4. **Network**: Handles peer-to-peer communication using Kademlia DHT
 5. **AI Optimizer**: Provides intelligent file deduplication and tagging
 6. **ZKP Verifier**: Generates and verifies zero-knowledge proofs
 
@@ -70,8 +76,8 @@ flowchart TD
         F -->|Save File| H[File Saved]
         G -->|Add Transaction| I[TX Added]
     
-        E -->|Yes| J[Network]
-        J -->|Broadcast File/Info| K[Other Peers]
+        E -->|Yes| J[Network/DHT]
+        J -->|Announce File/Hash| K[Other Peers]
     
         E -->|No| L[Response: Deduplicated]
     
@@ -90,8 +96,8 @@ flowchart TD
         DD -->|Yes| EE[Send File]
         EE -->|Return| FF[Client Receives File]
     
-        DD -->|No| GG[Network]
-        GG -->|Request File from Peers| HH[Other Peers]
+        DD -->|No| GG[Network/DHT]
+        GG -->|Look up Hash in DHT| HH[Other Peers]
         HH -->|Peer Responds| II[P2P Node]
         II -->|Forward File| FF
     
@@ -119,12 +125,12 @@ flowchart TD
 
 The data flow in the system:
 
-1. A client uploads a file to a PermastoreIt node via the HTTP API
+1. A client uploads a file to a PermastoreIt node via the HTTP API or SDK
 2. The file is analyzed for duplicates using the AI Optimizer
 3. If unique, the file is stored locally and its hash recorded in the blockchain
-4. The file is distributed to peer nodes in the network
-5. A zero-knowledge proof is generated for verification
-6. Files can be retrieved from any node using their hash
+4. The file hash is announced to the Kademlia DHT network
+5. A zero-knowledge proof can be generated for verification
+6. Files can be retrieved from any node using their hash, with DHT lookup if not found locally
 
 ## Configuration
 
@@ -146,32 +152,35 @@ PermastoreIt is configured via the `config.json` file. Here are the available op
     "application/octet-stream"
   ],
   "blockchain": {
-    "storage_file": "blockchain.json",  // Blockchain storage file
+    "storage_file": "data/blockchain.json",  // Blockchain storage file
     "min_transactions_per_block": 1     // Min transactions per block
   },
   "network": {
+    "peer_file": "data/peers.txt",     // File storing peer information
     "retry_limit": 3,              // Network retry attempts
     "request_timeout": 30,         // Request timeout in seconds
     "sync_interval": 3600          // Sync interval in seconds
   },
   "logging": {
     "level": "INFO",               // Logging level
-    "file": "permastore.log",      // Log file
+    "file": "logs/permastore.log", // Log file
     "max_size": 10485760,          // Max log size (10MB)
-    "backup_count": 5              // Number of log backups
+    "backup_count": 5,             // Number of log backups
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s" // Log format
   },
   "ai": {
     "min_similarity": 0.85         // Minimum similarity threshold
   },
   "zkp": {
     "enabled": true                // Enable zero-knowledge proofs
-  }
+  },
+  "cleanup_interval": 86400        // Interval for cleanup operations (24 hours)
 }
 ```
 
 ## API Reference
 
-PermastoreIt 2.0 provides a RESTful API for interacting with the system. All API endpoints return JSON responses unless otherwise specified.
+PermastoreIt 2.0 provides a RESTful API (built with FastAPI) for interacting with the system. All API endpoints return JSON responses unless otherwise specified.
 
 ### File Operations
 
@@ -188,21 +197,28 @@ Upload a file to the PermastoreIt network.
 - Method: POST
 - Content-Type: multipart/form-data
 - Body: Form data with a "file" field containing the file to upload
+- Rate limit: 10 requests per minute
 
 **Response:**
 
 ```json
 {
-  "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  "status": "success",
+  "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "size": 1024,
+  "zkp_available": true,
+  "message": "File uploaded and stored successfully"
 }
 ```
 
 **Status Codes:**
 
-- 200: File uploaded successfully
+- 201: File uploaded and stored successfully
+- 200: File already exists or was deduplicated
 - 400: Invalid request (missing file, invalid type)
 - 413: File too large
 - 500: Internal server error
+- 503: Node not initialized
 
 #### Download a File
 
@@ -216,6 +232,7 @@ Download a file from the PermastoreIt network by its hash.
 
 - Method: GET
 - URL Parameters: file_hash - The hash of the file to download
+- Rate limit: 60 requests per minute
 
 **Response:**
 
@@ -224,8 +241,9 @@ Download a file from the PermastoreIt network by its hash.
 **Status Codes:**
 
 - 200: File found and returned
-- 404: File not found
+- 404: File not found locally or via DHT
 - 500: Internal server error
+- 503: Node not initialized
 
 #### Get File Information
 
@@ -239,6 +257,7 @@ Get metadata about a file stored in the PermastoreIt network.
 
 - Method: GET
 - URL Parameters: file_hash - The hash of the file
+- Rate limit: 60 requests per minute
 
 **Response:**
 
@@ -248,7 +267,8 @@ Get metadata about a file stored in the PermastoreIt network.
   "filename": "example.txt",
   "content_type": "text/plain",
   "size": 1024,
-  "tags": ["text", "0.523", "0.187", "0.042"]
+  "timestamp": 1648500000.0,
+  "tags": ["text", "document", "plain"]
 }
 ```
 
@@ -257,6 +277,50 @@ Get metadata about a file stored in the PermastoreIt network.
 - 200: File information retrieved successfully
 - 404: File not found
 - 500: Internal server error
+- 503: Node not initialized
+
+#### List All Files
+
+```
+GET /files
+```
+
+List metadata for all files stored in the node.
+
+**Request:**
+
+- Method: GET
+- Query Parameters: limit (optional) - Maximum number of files to return
+- Rate limit: 30 requests per minute
+
+**Response:**
+
+```json
+[
+  {
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "filename": "example.txt",
+    "content_type": "text/plain",
+    "size": 1024,
+    "timestamp": 1648500000.0,
+    "tags": ["text", "document", "plain"]
+  },
+  {
+    "hash": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+    "filename": "another.pdf",
+    "content_type": "application/pdf",
+    "size": 5242880,
+    "timestamp": 1648499000.0,
+    "tags": ["pdf", "document", "report"]
+  }
+]
+```
+
+**Status Codes:**
+
+- 200: Files listed successfully
+- 500: Internal server error
+- 503: Node not initialized
 
 #### Search Files
 
@@ -264,164 +328,42 @@ Get metadata about a file stored in the PermastoreIt network.
 GET /search
 ```
 
-Search for files in the PermastoreIt network.
+Search for files based on filename or tags.
 
 **Request:**
 
 - Method: GET
-- Query Parameters: query - The search query
+- Query Parameters: 
+  - query - The search query (min length: 2)
+  - limit - Maximum number of results (default: 10, max: 50)
+- Rate limit: 30 requests per minute
 
 **Response:**
 
 ```json
-{
-  "results": [
-    {
-      "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "filename": "example.txt",
-      "content_type": "text/plain"
-    }
-  ]
-}
+[
+  {
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "filename": "example.txt",
+    "content_type": "text/plain", 
+    "size": 1024,
+    "similarity": 0.95
+  },
+  {
+    "hash": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+    "filename": "examples.json",
+    "content_type": "application/json",
+    "size": 2048,
+    "similarity": 0.87
+  }
+]
 ```
 
 **Status Codes:**
 
 - 200: Search completed successfully
-- 400: Invalid query
 - 500: Internal server error
-
-### Peer Management
-
-#### Add a Peer
-
-```
-POST /peers
-```
-
-Add a peer to the PermastoreIt network.
-
-**Request:**
-
-- Method: POST
-- Content-Type: application/json
-- Body:
-
-```json
-{
-  "url": "http://peer-host:5000"
-}
-```
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "message": "Peer added: http://peer-host:5000"
-}
-```
-
-**Status Codes:**
-
-- 200: Peer added successfully
-- 400: Invalid peer URL or unable to connect to peer
-- 500: Internal server error
-
-#### Remove a Peer
-
-```
-DELETE /peers/{peer_url}
-```
-
-Remove a peer from the PermastoreIt network.
-
-**Request:**
-
-- Method: DELETE
-- URL Parameters: peer_url - The URL of the peer to remove
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "message": "Peer removed: http://peer-host:5000"
-}
-```
-
-**Status Codes:**
-
-- 200: Peer removed successfully
-- 500: Internal server error
-
-#### List Peers
-
-```
-GET /peers
-```
-
-Get a list of all peers in the PermastoreIt network.
-
-**Request:**
-
-- Method: GET
-
-**Response:**
-
-```json
-{
-  "peers": [
-    "http://peer1:5000",
-    "http://peer2:5000"
-  ]
-}
-```
-
-**Status Codes:**
-
-- 200: Peers retrieved successfully
-- 500: Internal server error
-
-#### Synchronize Files
-
-```
-POST /sync
-```
-
-Synchronize files with peers in the network.
-
-**Request:**
-
-- Method: POST
-
-**Response:**
-
-```json
-{
-  "synced": 3,
-  "failed": 1,
-  "peers": {
-    "http://peer1:5000": {
-      "status": "success",
-      "files": 2
-    },
-    "http://peer2:5000": {
-      "status": "success",
-      "files": 1
-    },
-    "http://peer3:5000": {
-      "status": "failed",
-      "files": 0
-    }
-  }
-}
-```
-
-**Status Codes:**
-
-- 200: Synchronization completed
-- 500: Internal server error
+- 503: Node not initialized
 
 ### System Status
 
@@ -431,7 +373,7 @@ Synchronize files with peers in the network.
 GET /status
 ```
 
-Get status information about the node.
+Get basic status information about the node.
 
 **Request:**
 
@@ -441,28 +383,11 @@ Get status information about the node.
 
 ```json
 {
-  "blockchain_length": 10,
-  "peers": [
-    "http://peer1:5000",
-    "http://peer2:5000"
-  ],
-  "last_block": {
-    "index": 10,
-    "timestamp": 1648500000,
-    "transactions": [
-      {
-        "data": {
-          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-          "filename": "example.txt",
-          "content_type": "text/plain",
-          "size": 1024,
-          "tags": ["text", "0.523", "0.187", "0.042"]
-        },
-        "timestamp": 1648499900
-      }
-    ],
-    "previous_hash": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
-  }
+  "status": "operational",
+  "node_id": "7a28b6e9a4a1",
+  "files_stored": 23,
+  "blockchain_length": 15,
+  "peers_connected": 5
 }
 ```
 
@@ -470,6 +395,7 @@ Get status information about the node.
 
 - 200: Status retrieved successfully
 - 500: Internal server error
+- 503: Node not initialized
 
 #### Health Check
 
@@ -477,7 +403,7 @@ Get status information about the node.
 GET /health
 ```
 
-Check if the node is healthy.
+Perform a comprehensive health check of all node components.
 
 **Request:**
 
@@ -487,14 +413,27 @@ Check if the node is healthy.
 
 ```json
 {
-  "status": "healthy"
+  "status": "healthy",
+  "components": {
+    "blockchain": true,
+    "network": true,
+    "ai": true,
+    "storage": true,
+    "disk_space": true,
+    "dht": true
+  },
+  "node_id": "7a28b6e9a4a1",
+  "files_stored": 23,
+  "blockchain_length": 15,
+  "peers_connected": 5
 }
 ```
 
 **Status Codes:**
 
 - 200: Node is healthy
-- 500: Node is unhealthy
+- 503: Node has degraded functionality
+- 500: Health check failed
 
 ### Zero-Knowledge Proofs
 
@@ -510,6 +449,7 @@ Generate a zero-knowledge proof for a file.
 
 - Method: GET
 - URL Parameters: file_hash - The hash of the file
+- Rate limit: 30 requests per minute
 
 **Response:**
 
@@ -517,7 +457,8 @@ Generate a zero-knowledge proof for a file.
 {
   "proof": "7a28b6e9a4a19b5b2dac427fca7b6478ec1a4e2dfcd048210ee43c7a7f1d5b52",
   "challenge": "89a6b3c45e2d1f7d",
-  "algorithm": "SHA256-HKDF"
+  "algorithm": "SHA256-HKDF",
+  "status": "success"
 }
 ```
 
@@ -525,43 +466,288 @@ Generate a zero-knowledge proof for a file.
 
 - 200: Proof generated successfully
 - 404: File not found
+- 501: ZKP generation not implemented or disabled
 - 500: Internal server error
+- 503: Node not initialized
 
-#### Verify Proof
+## SDK Reference
 
-```
-POST /verify-proof
-```
+The PermastoreIt Python SDK provides a convenient way to interact with the PermastoreIt API programmatically. It handles HTTP communication, file operations, and error management.
 
-Verify a zero-knowledge proof.
+### SDK Installation
 
-**Request:**
+To install the SDK:
 
-- Method: POST
-- Content-Type: application/json
-- Body:
+```bash
+# From PyPI (Recommended)
+pip install permastoreit-sdk
 
-```json
-{
-  "file_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-  "proof": "7a28b6e9a4a19b5b2dac427fca7b6478ec1a4e2dfcd048210ee43c7a7f1d5b52",
-  "challenge": "89a6b3c45e2d1f7d"
-}
+# From source
+git clone https://github.com/permastoreit/sdk-python.git
+cd sdk-python
+pip install -e .
 ```
 
-**Response:**
+### Basic Usage
 
-```json
-{
-  "valid": true
-}
+```python
+from permastoreit_sdk import PermastoreItClient
+
+# Create a client instance
+client = PermastoreItClient(base_url="http://localhost:5000")
+
+# Check the node status
+status = client.get_status()
+print(f"Node status: {status}")
+
+# Upload a file
+upload_result = client.upload("/path/to/file.txt")
+file_hash = upload_result["hash"]
+print(f"File uploaded successfully, hash: {file_hash}")
+
+# Download a file
+download_path = client.download(file_hash, save_dir="downloads")
+print(f"File downloaded to: {download_path}")
 ```
 
-**Status Codes:**
+### Client Methods
 
-- 200: Proof verification completed
-- 400: Invalid request
-- 500: Internal server error
+The `PermastoreItClient` class provides the following methods:
+
+#### Initialization
+
+```python
+client = PermastoreItClient(base_url="http://localhost:5000", timeout=60)
+```
+
+- `base_url`: The base URL of the PermastoreIt node API (default: "http://localhost:5000")
+- `timeout`: Default timeout in seconds for API requests (default: 60)
+
+#### Get Root Message
+
+```python
+response = client.get_root_message()
+```
+
+Returns the welcome message from the root endpoint.
+
+#### Get Status
+
+```python
+status = client.get_status()
+```
+
+Returns the operational status of the node with details about files stored, blockchain length, etc.
+
+#### Get Health
+
+```python
+health = client.get_health()
+```
+
+Returns a comprehensive health check report of all node components.
+
+#### Upload
+
+```python
+result = client.upload(file_path)
+```
+
+Uploads a file from the given local path to the node.
+
+- `file_path`: The local path to the file to upload.
+
+Returns a dictionary containing the upload result (status, hash, size, etc.).
+
+#### Download
+
+```python
+saved_path = client.download(file_hash, save_dir, save_filename=None)
+```
+
+Downloads a file by its hash and saves it to a specified directory.
+
+- `file_hash`: The SHA-256 hash of the file to download.
+- `save_dir`: The directory where the file should be saved. Created if it doesn't exist.
+- `save_filename`: Optional. The name to save the file as. If None, uses the file hash.
+
+Returns the full path to the downloaded file.
+
+#### List Files
+
+```python
+files = client.list_files(limit=None)
+```
+
+Retrieves metadata for stored files, optionally limited to a specified number.
+
+- `limit`: Optional maximum number of recent files to return.
+
+Returns a list of file metadata dictionaries.
+
+#### Get File Info
+
+```python
+info = client.get_file_info(file_hash)
+```
+
+Gets metadata for a specific file hash from the blockchain record.
+
+- `file_hash`: The SHA-256 hash of the file.
+
+Returns a dictionary containing the file's metadata.
+
+#### Search
+
+```python
+results = client.search(query, limit=10)
+```
+
+Searches for files by query (matches filenames and tags).
+
+- `query`: The search term.
+- `limit`: The maximum number of results to return (default 10).
+
+Returns a list of search result dictionaries, sorted by relevance.
+
+#### Get ZK Proof
+
+```python
+proof = client.get_zk_proof(file_hash)
+```
+
+Gets the Zero-Knowledge Proof for a file hash.
+
+- `file_hash`: The SHA-256 hash of the file.
+
+Returns a dictionary containing the ZKP details (proof, challenge, algorithm).
+
+### Error Handling
+
+The SDK defines custom exceptions to handle different error scenarios:
+
+#### PermastoreItError
+
+Base exception for all SDK errors.
+
+#### APIError
+
+Raised for non-2xx API responses.
+
+```python
+try:
+    client.get_status()
+except APIError as e:
+    print(f"API error {e.status_code}: {e.detail}")
+```
+
+#### NetworkError
+
+Raised for connection, timeout, or other request errors.
+
+```python
+try:
+    client.upload("example.txt")
+except NetworkError as e:
+    print(f"Network error: {e}")
+```
+
+#### FileNotFoundErrorOnServer
+
+Raised specifically for 404 errors when expecting a file/resource.
+
+```python
+try:
+    client.download("nonexistent_hash", "downloads")
+except FileNotFoundErrorOnServer as e:
+    print(f"File not found: {e.resource_id}")
+```
+
+#### ZKPDisabledError
+
+Raised when ZKP functionality is requested but disabled on the server.
+
+```python
+try:
+    client.get_zk_proof(file_hash)
+except ZKPDisabledError:
+    print("Zero-Knowledge Proofs are disabled on this server")
+```
+
+### Examples
+
+#### Complete File Upload and Download
+
+```python
+from permastoreit_sdk import PermastoreItClient, FileNotFoundErrorOnServer
+
+client = PermastoreItClient(base_url="http://localhost:5000")
+
+try:
+    # Upload a file
+    result = client.upload("my_document.pdf")
+    file_hash = result["hash"]
+    print(f"File uploaded successfully with hash: {file_hash}")
+    
+    # Get file information
+    info = client.get_file_info(file_hash)
+    print(f"File name: {info['filename']}")
+    print(f"File size: {info['size']} bytes")
+    print(f"Content type: {info['content_type']}")
+    
+    # Download the file
+    download_path = client.download(file_hash, save_dir="downloads", save_filename="downloaded_document.pdf")
+    print(f"File downloaded to: {download_path}")
+
+except FileNotFoundErrorOnServer as e:
+    print(f"File not found on server: {e}")
+except Exception as e:
+    print(f"Error: {e}")
+```
+
+#### Search and List Files
+
+```python
+from permastoreit_sdk import PermastoreItClient
+
+client = PermastoreItClient(base_url="http://localhost:5000")
+
+# List recent files (limit 5)
+recent_files = client.list_files(limit=5)
+print("Recent files:")
+for file in recent_files:
+    print(f" - {file['filename']} ({file['hash']})")
+
+# Search for PDF files
+pdf_files = client.search("pdf", limit=10)
+print("\nPDF files:")
+for file in pdf_files:
+    print(f" - {file['filename']} (Similarity: {file['similarity']})")
+```
+
+#### Zero-Knowledge Proofs
+
+```python
+from permastoreit_sdk import PermastoreItClient, ZKPDisabledError
+
+client = PermastoreItClient(base_url="http://localhost:5000")
+
+try:
+    # Upload a file first
+    result = client.upload("confidential_document.txt")
+    file_hash = result["hash"]
+    
+    # Get zero-knowledge proof
+    proof = client.get_zk_proof(file_hash)
+    print(f"ZKP proof generated: {proof['proof']}")
+    print(f"Challenge: {proof['challenge']}")
+    print(f"Algorithm: {proof['algorithm']}")
+    
+except ZKPDisabledError:
+    print("Zero-Knowledge Proofs are disabled on this server")
+except Exception as e:
+    print(f"Error: {e}")
+```
 
 ## Core Components
 
@@ -572,10 +758,13 @@ The server component (`server.py`) is the entry point for the application and pr
 Key responsibilities:
 
 - Expose RESTful API endpoints
-- Handle request validation
+- Handle request validation and rate limiting
 - Route requests to the appropriate components
 - Format and send responses
 - Handle errors and exceptions
+- Manage the Kademlia DHT server lifecycle
+
+The server uses asyncio and supports asynchronous operations for better performance, particularly for network and I/O operations.
 
 ### P2P Node
 
@@ -588,7 +777,7 @@ Key responsibilities:
 - Record file transactions in the blockchain
 - Coordinate with the AI Optimizer for file deduplication
 - Generate zero-knowledge proofs via the ZKP Verifier
-- Broadcast files to peers via the network component
+- Interface with the Kademlia DHT for distributed file discovery
 
 ### Blockchain
 
@@ -604,16 +793,15 @@ Key responsibilities:
 
 ### Network
 
-The network component (`network.py`) handles communication between nodes in the PermastoreIt network. It maintains connections to peer nodes and handles file distribution.
+The network component (`network.py`) handles communication between nodes in the PermastoreIt network. It implements a Kademlia Distributed Hash Table (DHT) for efficient peer discovery and file lookup.
 
 Key responsibilities:
 
-- Maintain a list of known peers
-- Add and remove peers
-- Broadcast files to peers
-- Download files from peers
-- Synchronize files between nodes
-- Validate peer nodes
+- Start and manage the Kademlia DHT server
+- Announce file hashes to the DHT
+- Look up files in the DHT
+- Bootstrap the DHT network
+- Maintain routing tables for efficient peer communication
 
 ### AI Optimizer
 
@@ -645,15 +833,22 @@ uploads/
 ├── e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 ├── 2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824
 └── ...
+
+data/
+├── blockchain.json
+└── peers.txt
+
+logs/
+└── permastore.log
 ```
 
 Each file is stored with its SHA-256 hash as the filename, making it easy to locate and retrieve files by their hash. This approach also provides implicit deduplication at the file level, as identical files will have identical hashes.
 
-The blockchain data is stored in the `blockchain.json` file, which contains the complete blockchain including all transactions. The list of peers is stored in the `peers.txt` file.
+The blockchain data is stored in the `data/blockchain.json` file, which contains the complete blockchain including all transactions. The list of peers is stored in the `data/peers.txt` file, and logs are written to `logs/permastore.log`.
 
 ## Security Features
 
-PermastoreIt 2.0 includes several security features to protect the integrity and availability of stored data:
+PermastoreIt 1.2.0 includes several security features to protect the integrity and availability of stored data:
 
 1. **Content Integrity**: Files are identified by their cryptographic hash, making it easy to verify that files haven't been tampered with.
 2. **Blockchain Ledger**: All file transactions are recorded in an immutable blockchain, providing a tamper-proof audit trail.
@@ -662,7 +857,9 @@ PermastoreIt 2.0 includes several security features to protect the integrity and
 5. **Duplicate Detection**: The AI Optimizer can detect not just identical files, but also near-duplicates, preventing storage of slightly modified versions of the same content.
 6. **File Type Validation**: The system validates file types and only allows specified MIME types to be uploaded.
 7. **File Size Limits**: Maximum file size is enforced to prevent denial-of-service attacks.
-8. **Retry Mechanism**: Failed network operations are retried to ensure reliability.
+8. **Rate Limiting**: The API implements rate limiting to prevent abuse (using the SlowAPI library).
+9. **Trusted Host Middleware**: The server uses FastAPI's TrustedHostMiddleware to prevent host header attacks.
+10. **CORS Protection**: Cross-Origin Resource Sharing is configured to allow only specific origins.
 
 For production deployments, consider implementing these additional security measures:
 
@@ -670,13 +867,12 @@ For production deployments, consider implementing these additional security meas
 2. **Authentication**: Implement an access control system.
 3. **Network Segmentation**: Separate public-facing components from internal storage.
 4. **Regular Backups**: Maintain regular backups of blockchain data.
-5. **Rate Limiting**: Implement rate limiting to prevent abuse.
 
 ## Monitoring and Maintenance
 
 ### Logging
 
-PermastoreIt uses Python's standard logging module to record events and errors. Logs are written to the file specified in the configuration (`permastore.log` by default).
+PermastoreIt uses Python's standard logging module to record events and errors. Logs are written to the file specified in the configuration (`logs/permastore.log` by default).
 
 Example log entry:
 
@@ -684,23 +880,33 @@ Example log entry:
 2025-03-30 12:34:56,789 - p2p_node - INFO - File stored successfully: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 ```
 
-Key log components:
+The logging system includes:
 
-- **Timestamp**: When the event occurred
-- **Component**: Which part of the system generated the log
-- **Level**: Severity (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-- **Message**: Description of the event
+- Configurable log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+- Rotating file handler to manage log size
+- Formatting options
+- Component-specific loggers
+- Both file and console output
 
 ### Health Checks
 
-The `/health` endpoint provides a simple way to check if the node is functioning correctly. You can use monitoring tools like Prometheus, Grafana, or even simple scripts to periodically check this endpoint and alert if the node becomes unhealthy.
+The `/health` endpoint provides a comprehensive way to check if the node is functioning correctly. It verifies:
+
+1. Blockchain integrity
+2. Network connectivity
+3. AI optimizer functionality
+4. Storage accessibility
+5. Disk space availability
+6. DHT server status
+
+You can use monitoring tools like Prometheus, Grafana, or even simple scripts to periodically check this endpoint and alert if the node becomes unhealthy.
 
 ### Backup and Recovery
 
-To backup PermastoreIt data, you should regularly backup the following files:
+To backup PermastoreIt data, you should regularly backup the following files and directories:
 
-1. `blockchain.json`: Contains the blockchain data
-2. `peers.txt`: Contains the list of known peers
+1. `data/blockchain.json`: Contains the blockchain data
+2. `data/peers.txt`: Contains the list of known peers
 3. `uploads/` directory: Contains all stored files
 
 For Docker deployments, these directories can be mounted as volumes, so they persist even if the container is removed.
@@ -726,26 +932,67 @@ For Docker deployments, these directories can be mounted as volumes, so they per
    - Solution: Check the logs for specific errors and correct the configuration.
 4. **Permission issues**: The application doesn't have permission to write to the required directories.
 
-   - Solution: Check and correct permissions on the `uploads` directory and log file.
+   - Solution: Check and correct permissions on the `uploads`, `data`, and `logs` directories.
+5. **Directory structure missing**: Required directories don't exist.
 
-#### Files Not Syncing Between Nodes
+   - Solution: Create the necessary directories (`uploads`, `data`, `logs`).
 
-**Symptoms**: Files uploaded to one node are not appearing on other nodes.
+#### SDK Connection Issues
+
+**Symptoms**: The SDK fails to connect to the PermastoreIt node.
 
 **Possible causes and solutions**:
 
-1. **Network connectivity issues**: Nodes cannot reach each other.
+1. **Node not running**: The PermastoreIt node is not running or is unreachable.
+
+   - Solution: Verify the node is running and accessible.
+2. **Incorrect base URL**: The base URL provided to the SDK is incorrect.
+
+   - Solution: Check the URL (including protocol, host, and port).
+3. **Network issues**: Network problems between the client and server.
+
+   - Solution: Check network connectivity, firewalls, and proxy settings.
+4. **Timeout too short**: The timeout value is too short for slow operations.
+
+   - Solution: Increase the timeout value when creating the client.
+
+#### DHT Not Starting
+
+**Symptoms**: The health check shows `"dht": false` or log messages indicate DHT startup failures.
+
+**Possible causes and solutions**:
+
+1. **Network configuration issues**: Firewall or network settings blocking UDP traffic.
+
+   - Solution: Check firewall settings and ensure UDP traffic is allowed.
+2. **Port conflicts**: Another application is using the DHT port.
+
+   - Solution: Configure a different DHT port if possible.
+3. **Bootstrapping problems**: Cannot connect to bootstrap nodes.
+
+   - Solution: Verify bootstrap node addresses and ensure they are reachable.
+4. **Kademlia library issues**: Problems with the Kademlia implementation.
+
+   - Solution: Check for updates to the library or consider alternative implementations.
+
+#### Files Not Found When Downloading
+
+**Symptoms**: Download requests return 404 Not Found, even though the file should exist in the network.
+
+**Possible causes and solutions**:
+
+1. **DHT issues**: The DHT is not properly announcing or finding files.
+
+   - Solution: Check DHT status in health check, restart the node if necessary.
+2. **File hash mismatch**: The requested hash doesn't match any file in the network.
+
+   - Solution: Verify the hash and ensure it's correctly entered.
+3. **No peers with the file**: None of the peers in the DHT have the requested file.
+
+   - Solution: Upload the file to at least one node in the network.
+4. **Network connectivity**: Peers cannot reach each other.
 
    - Solution: Check network connectivity between nodes, ensure firewalls allow traffic.
-2. **Peer list issues**: Peers are not correctly configured.
-
-   - Solution: Verify peer URLs in the peers list using the `/peers` endpoint.
-3. **Synchronization not running**: Automatic sync is not happening.
-
-   - Solution: Manually trigger sync with the `/sync` endpoint, or check the sync interval in the configuration.
-4. **Node overload**: One or more nodes are overloaded and not responding to sync requests.
-
-   - Solution: Check system resources, increase timeout values, or add more nodes to distribute load.
 
 #### High Resource Usage
 
@@ -765,10 +1012,13 @@ For Docker deployments, these directories can be mounted as volumes, so they per
 4. **Memory leaks**: Potential bugs causing memory leaks.
 
    - Solution: Update to the latest version, or examine logs for clues about problematic components.
+5. **DHT traffic**: High DHT traffic causing resource consumption.
+
+   - Solution: Adjust DHT configuration parameters or limit the scope of DHT announcements.
 
 ### Diagnostic Tools
 
-PermastoreIt includes several diagnostic tools to help identify and fix issues:
+PermastoreIt 1.2.0 includes several diagnostic endpoints to help identify and fix issues:
 
 1. **Logs**: The first place to look for error messages and warnings.
 
@@ -776,25 +1026,12 @@ PermastoreIt includes several diagnostic tools to help identify and fix issues:
    - Set the log level to `DEBUG` in the configuration for more detailed logs.
 2. **Status endpoint**: The `/status` endpoint provides information about the node's state.
 
-   - Check the blockchain length and last block information.
-   - Verify the list of peers.
+   - Check the blockchain length and peer count.
+   - Verify the number of files stored.
 3. **Health endpoint**: The `/health` endpoint checks if all components are functioning correctly.
 
-   - If it returns `unhealthy`, check the logs for specific component failures.
-4. **Command line tools**: The repository includes several diagnostic scripts:
-
-   - `verify_blockchain.py`: Checks the integrity of the blockchain.
-   - `check_files.py`: Verifies that all files in the blockchain exist on disk.
-   - `network_test.py`: Tests connectivity with all peers.
-
-### Resetting the System
-
-In some cases, you may need to reset parts of the system to recover from a serious error:
-
-1. **Reset peers**: Delete the `peers.txt` file and add peers again using the API.
-2. **Reset blockchain**: Delete the `blockchain.json` file to start with a fresh blockchain. Note that this will lose the record of all file transactions, but the files themselves will remain.
-3. **Reset uploads**: Delete the contents of the `uploads` directory to free up disk space. Note that this will delete all stored files, so only do this if you have backups or can recover files from other nodes.
-4. **Complete reset**: Delete all data files (`blockchain.json`, `peers.txt`, and the `uploads` directory) and start from scratch.
+   - If it returns `"status": "degraded"`, check the individual component statuses.
+   - Look for `false` values in the `components` section to identify specific problems.
 
 ## Development Guide
 
@@ -805,179 +1042,186 @@ This section provides guidance for developers who want to extend or modify Perma
 The codebase is organized as follows:
 
 ```
-permastoreit-2.0/
+permastoreit-1.2.0/
 ├── server.py               # Entry point, HTTP API
 ├── p2p_node.py             # Core node functionality
 ├── blockchain.py           # Blockchain implementation
 ├── network.py              # Network and peer management
 ├── ai_optimizer.py         # AI-based file analysis
 ├── zkp.py                  # Zero-knowledge proof system
-├── utils/
-│   ├── config.py           # Configuration management
-│   ├── logging.py          # Logging utilities
-│   ├── hashing.py          # Cryptographic functions
-│   └── validation.py       # Input validation
-├── tests/                  # Unit and integration tests
-├── scripts/                # Management and diagnostic scripts
-├── docker/                 # Docker-related files
-│   ├── Dockerfile          # Docker image definition
-│   └── docker-compose.yml  # Docker Compose configuration
+├── config.py               # Configuration loading and validation
+├── uploads/                # File storage directory
+├── data/                   # Blockchain and peer data
+│   ├── blockchain.json     # Blockchain storage
+│   └── peers.txt           # Peer list
+├── logs/                   # Log files
+│   └── permastore.log      # Main log file
 ├── requirements.txt        # Python dependencies
 ├── config.json             # Configuration file
-└── README.md               # Project documentation
+└── Documentation.md        # Project documentation
+```
+
+### Key Asynchronous Functions
+
+PermastoreIt 2.0 uses asyncio for improved performance. Key asynchronous functions include:
+
+1. **Lifespan management**: Application startup and shutdown functions manage DHT lifecycle:
+
+```python
+async def lifespan(app: FastAPI):
+    # Startup
+    if node and hasattr(node, 'network') and hasattr(node.network, 'start'):
+        node.network._dht_task = asyncio.create_task(node.network.start())
+    yield
+    # Shutdown
+    if node and hasattr(node, 'network') and hasattr(node.network, 'stop'):
+        await node.network.stop()
+```
+
+2. **File upload**: The upload endpoint is asynchronous:
+
+```python
+@app.post("/upload", response_model=UploadResponse, status_code=201)
+@limiter.limit("10/minute")
+async def upload_file(request: Request, file: UploadFile = File(...)):
+    result = await node.store_file(file)
+    return JSONResponse(content=result)
+```
+
+3. **File download**: The download function retrieves files from local storage or DHT peers:
+
+```python
+@app.get("/download/{file_hash}")
+@limiter.limit("60/minute")
+async def download_file(request: Request, file_hash: str):
+    file_path = await node.retrieve_file(file_hash)
+    if file_path and os.path.exists(file_path):
+        return FileResponse(path=file_path)
 ```
 
 ### Adding a New API Endpoint
 
 To add a new API endpoint:
 
-1. Open `server.py` and define a new route:
+1. Open `server.py` and define a new route using FastAPI decorators:
 
 ```python
-@app.route("/new-endpoint", methods=["GET"])
-def new_endpoint():
-    # Implement your endpoint logic here
-    return jsonify({"message": "This is a new endpoint"})
-```
-
-2. Add proper error handling and input validation:
-
-```python
-from utils.validation import validate_input
-
-@app.route("/new-endpoint/<parameter>", methods=["POST"])
-def new_endpoint(parameter):
+@app.get("/new-endpoint/{parameter}", tags=["Category"])
+@limiter.limit("30/minute")
+async def new_endpoint(request: Request, parameter: str):
     # Validate input
-    if not validate_input(parameter):
-        return jsonify({"error": "Invalid parameter"}), 400
+    if not parameter or len(parameter) < 3:
+        raise HTTPException(status_code=400, detail="Invalid parameter (min length: 3)")
   
     try:
         # Implement your endpoint logic here
-        result = do_something(parameter)
-        return jsonify(result)
+        result = {"parameter": parameter, "processed": True}
+        return result
     except Exception as e:
-        app.logger.error(f"Error in new endpoint: {str(e)}")
-        return jsonify({"error": "Internal server error"}), 500
+        logger.error(f"Error in new endpoint: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error during processing.")
 ```
 
-3. Update the documentation to reflect the new endpoint.
-
-### Extending the Blockchain
-
-To add new transaction types or blockchain features:
-
-1. Open `blockchain.py` and define a new transaction type:
+2. Create appropriate response models using Pydantic:
 
 ```python
-def add_custom_transaction(self, data):
-    """
-    Add a custom transaction to the blockchain.
-  
-    Args:
-        data (dict): Custom transaction data
-  
-    Returns:
-        int: The index of the block containing the transaction
-    """
-    transaction = {
-        "type": "custom",
-        "data": data,
-        "timestamp": int(time.time())
-    }
-    return self.add_transaction(transaction)
+class NewEndpointResponse(BaseModel):
+    parameter: str
+    processed: bool
+    timestamp: float = Field(default_factory=time.time)
 ```
 
-2. Add any additional validation or processing required for the new transaction type:
+3. Update the API documentation by adding appropriate docstrings.
+
+### Extending the DHT Functionality
+
+To enhance or extend the Kademlia DHT functionality:
+
+1. Update the `network.py` file to add new DHT methods:
 
 ```python
-def validate_custom_transaction(transaction):
+async def announce_value(self, key, value):
     """
-    Validate a custom transaction.
+    Announce a key-value pair to the DHT.
   
     Args:
-        transaction (dict): The transaction to validate
+        key (str): The key to announce
+        value (str): The value to associate with the key
   
     Returns:
-        bool: True if the transaction is valid, False otherwise
+        bool: True if announced successfully, False otherwise
     """
-    # Add validation logic here
-    if "required_field" not in transaction["data"]:
+    if not self._dht_started:
+        await self.start()
+    
+    try:
+        await self.dht_server.set(key, value)
+        return True
+    except Exception as e:
+        logger.error(f"Failed to announce to DHT: {e}")
         return False
-    return True
 ```
 
-3. Update the relevant parts of the codebase to use the new transaction type.
+2. Add corresponding methods to the P2P Node component:
 
-### Contributing
+```python
+async def announce_metadata(self, file_hash, metadata):
+    """
+    Announce file metadata to the DHT.
+  
+    Args:
+        file_hash (str): The file hash
+        metadata (dict): The metadata to announce
+  
+    Returns:
+        bool: True if announced successfully
+    """
+    metadata_json = json.dumps(metadata)
+    return await self.network.announce_value(f"meta:{file_hash}", metadata_json)
+```
 
-Contributions to PermastoreIt are welcome! Here's how to contribute:
-
-1. **Fork the repository**: Create your own fork of the project.
-2. **Create a feature branch**: Create a branch for your feature or bugfix.
-3. **Write tests**: Add tests for your changes to ensure they work correctly.
-4. **Make your changes**: Implement your feature or bugfix.
-5. **Run the tests**: Ensure all tests pass with your changes.
-6. **Submit a pull request**: Create a pull request to merge your changes back into the main repository.
-7. **Code review**: Wait for a code review from the maintainers.
+3. Expose the functionality through the API as needed.
 
 ## Best Practices
 
 ### Performance Optimization
 
-1. **Limit AI processing**: The AI Optimizer is resource-intensive. Only use it when necessary.
-2. **Optimize file distribution**: Use a selective approach to file distribution, prioritizing popular files.
-3. **Use appropriate hash algorithms**: SHA-256 provides a good balance of security and performance.
+1. **Use asynchronous I/O**: Leverage asyncio for I/O-bound operations to improve concurrency.
+2. **Optimize DHT parameters**: Fine-tune Kademlia parameters for your specific network topology.
+3. **Limit AI processing**: The AI Optimizer is resource-intensive. Only use it when necessary.
 4. **Implement caching**: Cache frequently accessed files and blockchain data.
-5. **Monitor resource usage**: Regularly check CPU, memory, and disk usage.
+5. **Use appropriate hash algorithms**: SHA-256 provides a good balance of security and performance.
+6. **Monitor resource usage**: Regularly check CPU, memory, and disk usage.
 
 ### Scalability
 
 1. **Horizontal scaling**: Add more nodes to the network to handle increased load.
 2. **Load balancing**: Use a load balancer to distribute requests across multiple nodes.
-3. **Sharding**: Implement a sharding strategy to distribute the blockchain across nodes.
-4. **Pruning**: Implement blockchain pruning to remove old blocks.
-5. **Efficient peer selection**: Select peers based on geography, latency, and reliability.
+3. **Optimize DHT routing**: Fine-tune DHT parameters for larger networks.
+4. **Implement content replication**: Automatically replicate popular content across multiple nodes.
+5. **Sharding**: Consider implementing data sharding for very large deployments.
 
 ### Security
 
 1. **Regular security audits**: Conduct security audits of the codebase.
 2. **Keep dependencies updated**: Regularly update dependencies to patch security vulnerabilities.
-3. **Implement rate limiting**: Prevent abuse by limiting the rate of requests.
-4. **Use secure communication**: Implement TLS/SSL for all communications.
-5. **Validate all inputs**: Thoroughly validate all inputs to prevent injection attacks.
+3. **Use secure communication**: Implement TLS/SSL for all communications.
+4. **Validate all inputs**: Thoroughly validate all inputs to prevent injection attacks.
+5. **Implement proper authentication**: Add user authentication for production deployments.
 
 ## Changelog
 
-### Version 1.0.1 (Internal Update)
+### Version 1.2.0 (April 2025)
 
-* Fixed critical initialization errors related to path handling (TypeError, MagicException, PermissionError).
-* Added explicit string conversion for paths loaded from config.
-* Improved error handling and logging during initialization and file operations.
-* Added basic exception handling for python-magic initialization failure.
-* Added basic thread locking for peer list access and file I/O.
-* Implemented atomic writes for blockchain and peer files.
-* Updated Docker Compose file with volumes and config mount.
-* Updated config file paths for better Docker compatibility.
-* Added comments to requirements.txt for OS dependencies.
-* Refined logging configuration and output.
-* Improved API response models and status codes.
+* Implemented Kademlia DHT for improved peer-to-peer file discovery and retrieval
+* Rewritten server component using FastAPI for improved performance and developer experience
+* Added asynchronous API endpoints for better concurrency and throughput
+* Implemented comprehensive health checks for system monitoring
+* Added rate limiting to prevent API abuse
+* Enhanced error handling and logging throughout the system
+* Improved security with CORS and Trusted Host protection
+* Added detailed API documentation with OpenAPI/Swagger integration
+* Updated file retrieval process to leverage DHT for distributed lookups
+* Restructured configuration with better organized directory paths
 
-### Version 1.0.0 (March 2025)
-
-* Initial release of PermastoreIt 2.0
-* Complete rewrite of the codebase from version 1.x
-* Added AI-powered file deduplication
-* Added zero-knowledge proof system
-* Improved P2P networking
-* Added blockchain ledger for file transactions
-* Implemented content-addressed storage
-
-Proprietary License
-
-Copyright (c) [2025] [Michael Kwabena Mireku/PermastoreIt]
-
-All rights reserved.
-
-This software and associated documentation files (PermastoreIt 2.0) are the proprietary and confidential property of [Michael Kwabena Mireku/PermastoreIt]. No license, express or implied, to use, copy, modify, prepare derivative works, distribute, publish, or sublicense the Software is granted except pursuant to a separate written agreement signed by [Michael Kwabena Mireku/PermastoreIt].
-
-Unauthorized use, copying, modification, distribution, publishing or sublicensing of the Software is strictly prohibited.
+### Version 1.0.1 (Internal Update

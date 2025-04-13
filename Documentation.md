@@ -1224,4 +1224,36 @@ async def announce_metadata(self, file_hash, metadata):
 * Updated file retrieval process to leverage DHT for distributed lookups
 * Restructured configuration with better organized directory paths
 
-### Version 1.0.1 (Internal Update
+### Version 1.0.1 ### (Internal Update)
+
+Fixed critical initialization errors related to path handling (TypeError, MagicException, PermissionError).
+Added explicit string conversion for paths loaded from config.
+Improved error handling and logging during initialization and file operations.
+Added basic exception handling for python-magic initialization failure.
+Added basic thread locking for peer list access and file I/O.
+Implemented atomic writes for blockchain and peer files.
+Updated Docker Compose file with volumes and config mount.
+Updated config file paths for better Docker compatibility.
+Added comments to requirements.txt for OS dependencies.
+Refined logging configuration and output.
+Improved API response models and status codes.
+
+### Version 1.0.0 (March 2025)
+
+* Initial release of PermastoreIt 1.0
+* Complete rewrite of the codebase from version 1.x
+* Added AI-powered file deduplication
+* Added zero-knowledge proof system
+* Improved P2P networking
+* Added blockchain ledger for file transactions
+* Implemented content-addressed storage
+
+Proprietary License
+
+Copyright (c) [2025] [Michael Kwabena Mireku/PermastoreIt]
+
+All rights reserved.
+
+This software and associated documentation files (the "PermastoreIt 2.0") are the proprietary and confidential property of [Michael Kwabena Mireku/PermastoreIt]. No license, express or implied, to use, copy, modify, prepare derivative works, distribute, publish, or sublicense the Software is granted except pursuant to a separate written agreement signed by [Michael Kwabena Mireku/PermastoreIt].
+
+Unauthorized use, copying, modification, distribution, publishing or sublicensing of the Software is strictly prohibited.

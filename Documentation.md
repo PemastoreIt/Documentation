@@ -138,12 +138,13 @@ PermastoreIt is configured via the `config.json` file. Here are the available op
 
 ```json
 {
-  "upload_dir": "uploads",         // Directory where files are stored
-  "max_file_size": 104857600,      // Maximum file size in bytes (100MB)
-  "host": "0.0.0.0",               // Host to bind the server to
-  "port": 5000,                    // Port to listen on
-  "debug": false,                  // Enable debug mode
-  "allowed_file_types": [          // Allowed MIME types
+  "upload_dir": "uploads",         
+  "max_file_size": 104857600,      
+  "host": "0.0.0.0",               
+  "port": 5000,                    
+
+  "debug": false,                  
+  "allowed_file_types": [          
     "application/pdf",
     "image/jpeg",
     "image/png",
@@ -152,35 +153,36 @@ PermastoreIt is configured via the `config.json` file. Here are the available op
     "application/octet-stream"
   ],
   "blockchain": {
-    "storage_file": "data/blockchain.json",  // Blockchain storage file
-    "min_transactions_per_block": 1     // Min transactions per block
+    "storage_file": "data/blockchain.json",  
+    "min_transactions_per_block": 1     
   },
   "network": {
-    "peer_file": "data/peers.txt",     // File storing peer information
-    "retry_limit": 3,              // Network retry attempts
-    "request_timeout": 30,         // Request timeout in seconds
-    "sync_interval": 3600          // Sync interval in seconds
+    "peer_file": "data/peers.txt",     
+    "retry_limit": 3,              
+    "request_timeout": 30,         
+    "sync_interval": 3600          
+
   },
   "logging": {
-    "level": "INFO",               // Logging level
-    "file": "logs/permastore.log", // Log file
-    "max_size": 10485760,          // Max log size (10MB)
-    "backup_count": 5,             // Number of log backups
+    "level": "INFO",               
+    "file": "logs/permastore.log", 
+    "max_size": 10485760,          
+    "backup_count": 5,             
     "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s" // Log format
   },
   "ai": {
-    "min_similarity": 0.85         // Minimum similarity threshold
+    "min_similarity": 0.85         
   },
   "zkp": {
-    "enabled": true                // Enable zero-knowledge proofs
+    "enabled": true                
   },
-  "cleanup_interval": 86400        // Interval for cleanup operations (24 hours)
+  "cleanup_interval": 86400        
 }
 ```
 
 ## API Reference
 
-PermastoreIt 2.0 provides a RESTful API (built with FastAPI) for interacting with the system. All API endpoints return JSON responses unless otherwise specified.
+PermastoreIt 1.2.0 provides a RESTful API (built with FastAPI) for interacting with the system. All API endpoints return JSON responses unless otherwise specified.
 
 ### File Operations
 

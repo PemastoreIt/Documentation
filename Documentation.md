@@ -229,7 +229,7 @@ PermastoreIt is configured via the `config.json` file. Here are the available op
   },
   "logging": {
     "level": "INFO",               
-    "file": "logs/permastore.log", 
+    "file": "logs/permastoreit.log", 
     "max_size": 10485760,          
     "backup_count": 5,             
     "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s" // Log format

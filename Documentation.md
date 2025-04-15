@@ -132,6 +132,70 @@ The data flow in the system:
 5. A zero-knowledge proof can be generated for verification
 6. Files can be retrieved from any node using their hash, with DHT lookup if not found locally
 
+## Installation
+
+### Prerequisites
+
+- Python 3.9 or higher
+- pip (Python package manager)
+- CUDA-compatible GPU (optional, for faster AI processing)
+- Docker and Docker Compose (optional, for containerized deployment)
+
+### Standard Installation
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/PermastoreIt/PermastoreIt
+cd PermastoreIt
+```
+
+2. Create a virtual environment (recommended):
+
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+3. Install the required dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+4. Create necessary directories:
+
+```bash
+mkdir -p uploads
+```
+
+5. Start the server:
+
+```bash
+python server.py
+```
+
+The server will be available at http://localhost:5000 (or the port specified in your config).
+
+### Docker Installation
+
+1. Ensure Docker and Docker Compose are installed on your system.
+
+2. Clone the repository:
+
+```bash
+git clone https://github.com/PermastoreIt/PermastoreIt.git
+cd PermastoreIt
+```
+
+3. Build and start the Docker container:
+
+```bash
+docker-compose up -d
+```
+
+This will build the Docker image and start the container in detached mode. The server will be available at http://localhost:5000.
+
 ## Configuration
 
 PermastoreIt is configured via the `config.json` file. Here are the available options:
@@ -180,7 +244,7 @@ PermastoreIt is configured via the `config.json` file. Here are the available op
 
 ## API Reference
 
-PermastoreIt 2.0 provides a RESTful API (built with FastAPI) for interacting with the system. All API endpoints return JSON responses unless otherwise specified.
+PermastoreIt 1.2.0 provides a RESTful API (built with FastAPI) for interacting with the system. All API endpoints return JSON responses unless otherwise specified.
 
 ### File Operations
 

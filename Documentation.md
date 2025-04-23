@@ -1320,6 +1320,6 @@ Copyright (c) [2025] [Michael Kwabena Mireku/PermastoreIt]
 
 All rights reserved.
 
-This software and associated documentation files (the "PermastoreIt 2.0") are the proprietary and confidential property of [Michael Kwabena Mireku/PermastoreIt]. No license, express or implied, to use, copy, modify, prepare derivative works, distribute, publish, or sublicense the Software is granted except pursuant to a separate written agreement signed by [Michael Kwabena Mireku/PermastoreIt].
+This software and associated documentation files (the "PermastoreIt") are the proprietary and confidential property of [Michael Kwabena Mireku/PermastoreIt]. No license, express or implied, to use, copy, modify, prepare derivative works, distribute, publish, or sublicense the Software is granted except pursuant to a separate written agreement signed by [Michael Kwabena Mireku/PermastoreIt].
 
 Unauthorized use, copying, modification, distribution, publishing or sublicensing of the Software is strictly prohibited.
